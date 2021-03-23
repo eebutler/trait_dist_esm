@@ -1,4 +1,4 @@
-# cd /Users/timaeus/Desktop/Projects/Plants/UMN/ACME_trait_distribution/scripts
+# cd /home/timaeus/Desktop/Projects/Plants/UMN/ACME_trait_distribution/scripts
 
 import pandas as pd
 import numpy as np
@@ -36,9 +36,9 @@ i_0 = tr.loc[:,'lls'].values < lls_lim[0]
 i_13 = [tr.loc[:,'lls.'+str(i)].values < lls_lim[i] for i in range(1,14)]
 for i in range(14):
     if i == 0:
-	incl.append(i_0)
+	    incl.append(i_0)
     else:
-	incl.append(i_13[i-1])
+	    incl.append(i_13[i-1])
 
 incl = pd.DataFrame(incl)
 
@@ -71,64 +71,66 @@ def var_plot(x):
     x = x.upper()
     # locations in dataframe for extracting different outputs
     if x=='GPP':
-	start = 7
-	end = 415
+        start = 7
+        end = 415
     elif x=='NPP':
-	start = 8
-	end = 416
+        start = 8
+        end = 416
     elif x=='MR':
-	start = 9
-	end = 417
+        start = 9
+        end = 417
     else:
-	start = 10
-	end = 418
+        start = 10
+        end = 418
     
     norm = mpl.colors.Normalize(vmin=-10,vmax=25)
     BuRd = cm.get_cmap('coolwarm',15)
 
     for i,s in enumerate(site):
-	vals = comb_runs[i].iloc[:,range(start,end,4)]
-	# pick out zero values
-	pl = [iv != 0 for iv in vals.mean()[0:100]]
-	# remove values outside of trait data range
-	pl = [pl[iv] and incl.iloc[iv,site_PFT_num[i]-1] for iv in range(len(pl))]	
-    
-	# Histograms
-	# mean
+        vals = comb_runs[i].iloc[:,range(start,end,4)]
+        # pick out zero values
+        pl = [iv != 0 for iv in vals.mean()[0:100]]
+	    # remove values outside of trait data range
+        pl = [pl[iv] and incl.iloc[iv,site_PFT_num[i]-1] for iv in range(len(pl))]	
+        
+	    # Histograms
+	    # mean
         ym = vals.mean()
-	with plt.rc_context({'axes.edgecolor':BuRd(norm(t2m[i])),'axes.linewidth':3}):
-	    n, bins, patches = plt.hist(ym[0:100][pl],20)
+	    
+        with plt.rc_context({'axes.edgecolor':BuRd(norm(t2m[i])),'axes.linewidth':3}):
+            plt.figure(figsize=(1.5,1.5)) 
+            n, bins, patches = plt.hist(ym[0:100][pl],20)
             plt.setp(patches,'edgecolor','k','facecolor','grey')
-	    ax = ym[0:100][pl].mean()
-	    ay = n.max()/3.0
-	    if x == 'GPP':
-	        if PFT[i][4:6] == 'tr':
-		    plt.xlim([250,5500])
-		elif handle[i][-2:] == 'Ar':
-		    plt.xlim([0,750])
-	        else:
-		   plt.xlim([0,2550])
-	    elif x == 'NPP':
-		if PFT[i][4:6] == 'tr':	
-                   plt.xlim([500,1500])
-		elif handle[i][-2:] == 'Ar':
-		    plt.xlim([0,400])
+            ax = ym[0:100][pl].mean()
+            ay = n.max()/3.0
+            if x == 'GPP':
+                if PFT[i][4:6] == 'tr':
+                    plt.xlim([250,5500])
+                elif handle[i][-2:] == 'Ar':
+                    plt.xlim([0,750])
                 else:
-	           plt.xlim([0,850])
-	    elif x == 'MR':
-		if PFT[i][4:6] == 'tr':
-                   plt.xlim([500,2200])
-		elif handle[i][-2:] == 'Ar':
-		    plt.xlim([0,400])
+                    plt.xlim([0,2550])
+            elif x == 'NPP':
+                if PFT[i][4:6] == 'tr':	
+                    plt.xlim([500,1500])
+                elif handle[i][-2:] == 'Ar':
+                    plt.xlim([0,400])
                 else:
-                   plt.xlim([0,750])
-	    plt.annotate("", xy=(ax, 0), xytext=(ax, ay),
-		arrowprops=dict(arrowstyle='simple',color='lightgreen'))
-	    plt.tick_params(axis='both', which='major', labelsize=18) 
-	    #plt.title(handle[i])
-	    #plt.xlabel(x+' [gC m$^{-2}$ yr$^{-1}$]') 
+                    plt.xlim([0,850])
+            elif x == 'MR':
+                if PFT[i][4:6] == 'tr':
+                    plt.xlim([500,2200])
+                elif handle[i][-2:] == 'Ar':
+                    plt.xlim([0,400])
+                else:
+                    plt.xlim([0,750])
+            plt.annotate("", xy=(ax, 0), xytext=(ax, ay),
+            arrowprops=dict(arrowstyle='simple',color='lightgreen'))
+            plt.tick_params(axis='both', which='major', labelsize=8) 
+            plt.title(handle[i], fontdict={'fontsize':10})
+            #plt.xlabel(x+' [gC m$^{-2}$ yr$^{-1}$]') 
             #plt.ylabel('Counts')
-            plt.savefig(s+'_'+x.lower()+'_lhd_mhist_T.pdf',bbox_inches='tight')
+            plt.savefig(s+'_'+x.lower()+'_lhd_mhist_T_nol.pdf',bbox_inches='tight')
             plt.close()
 
 
@@ -137,18 +139,19 @@ var_plot('NPP')
 var_plot('MR')
 
 # colorbar plot
-fig = plt.figure(figsize=(8, 2))
+fig = plt.figure(figsize=(1.5, 0.75))
 ax = fig.add_axes([0.05, 0.5, 0.9, 0.15])
 cmap = mpl.cm.coolwarm
 norm = mpl.colors.Normalize(vmin=-10,vmax=25)
 cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap,norm=norm,orientation='horizontal')
-cb.ax.tick_params(labelsize=18)
-cb.set_label('$^{\circ}$C',size=18)
+cb.ax.tick_params(labelsize=8)
+cb.set_label('$^{\circ}$C',size=8)
 plt.savefig('colorbar.pdf')
 plt.close('all')
 
 # gpp range density plot
 exi = [1,8,11]
+plt.figure(figsize=(3,3))
 for ix,i in enumerate(exi):
     valsGPP = comb_runs[i].iloc[:,range(7,415,4)]
     pl = [iv != 0 for iv in valsGPP.mean()[0:100]]
@@ -157,13 +160,13 @@ for ix,i in enumerate(exi):
     densGPP = gaussian_kde(mGPP)
     xGPP = np.linspace(mGPP.min(),mGPP.max(),500)
     c = ['b','g','brown']
-    label = ['Tropical','Temperate/Boreal','Arid']
+    label = ['Trop','Te/Bo','Arid']
     plt.plot(xGPP,densGPP(xGPP)/densGPP(xGPP).max(),color=c[ix],label=label[ix])
-    plt.legend(loc=4,fontsize='x-large')
-    plt.tick_params(axis='both', which='major', labelsize=18)
-    #plt.xlabel('GPP [gC m$^{-2}$ yr$^{-1}$]')
-    #plt.ylabel('Normalized Probability Density')
-    plt.savefig('gpp_dens_ex.pdf')
+    plt.legend(loc='upper right',fontsize=10)
+    plt.tick_params(axis='both', which='major', labelsize=16)
+    #plt.xlabel('GPP [gC m$^{-2}$ yr$^{-1}$]',fontsize=16)
+    plt.ylabel('Norm. Prob. Density',fontsize=16)
+    plt.savefig('gpp_dens_ex.pdf',bbox_inches='tight')
 
 # Density Plots
 for i,s in enumerate(site):
@@ -241,8 +244,26 @@ def site_info(x):
     
 	# Histograms
 	# mean
-        ym = vals.mean()
+    ym = vals.mean()
 	ymc = ym[0:100][pl]
 	print handle[i],ymc.min(),ymc.max()
 
 site_info('gpp')
+
+site_PFT2_num = [0,0,0,1,0,0,0,0,0,1,7,0,0,0,6]
+site_PFT1_mean = list()
+site_PFT2_mean = list()
+for i,s in enumerate(site):
+    valsGPP = comb_runs[i].iloc[:,range(7,415,4)]
+    # pick out zero values
+    pl = [iv != 0 for iv in valsGPP.mean()[0:100]]
+    # remove values outside of trait data range
+    pl = [pl[iv] and incl.iloc[iv,site_PFT_num[i]-1] for iv in range(len(pl))]
+    
+    site_trait1 = tr_loc_assign(site_PFT_num[i])
+    site_PFT1_mean.append(site_trait1.iloc[0:100,:][pl].mean())
+    if site_PFT2_num[i] == 0:
+	site_PFT2_mean.append(np.nan)
+    else:
+	site_trait2 = tr_loc_assign(site_PFT2_num[i])
+	site_PFT2_mean.append(site_trait2.iloc[0:100,:][pl].mean())
