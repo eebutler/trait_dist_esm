@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 from mpl_toolkits.basemap import Basemap
 
-fol = '../script_input'
+fol = '~/Desktop/Projects/Papers_InProgress/trait-dist_esm/site_information/'
 
 sites = pd.read_excel(fol+'15_sites_PFT_years.xlsx',skip_footer=16)
 

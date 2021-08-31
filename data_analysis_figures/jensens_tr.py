@@ -4,26 +4,34 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-yr_comb = pd.read_pickle('../script_input/flx_comb.p')
+f_comb = pd.read_pickle('../../script_input/flx_comb.p')
 
-t2m = [y.T2m.mean() for y in yr_comb]
-pre = [y.PRE.mean() for y in yr_comb]
-ev = [y.Evap.mean() for y in yr_comb]
-tra = [y.Tran.mean() for y in yr_comb]
+t2m = [y.T2m.mean() for y in f_comb]
+pre = [y.PRE.mean() for y in f_comb]
+ev = [y.Evap.mean() for y in f_comb]
+tr = [y.Tran.mean() for y in f_comb]
 
-pet = np.array(ev)+np.array(tra)
+pet = np.array(ev)+np.array(tr)
 
-comb_runs = pd.read_pickle('../script_input/flx_comb.p')
+#comb_runs = pd.read_pickle('flx_comb.p')
 # manually add in NaN values for bad years
-comb_runs[1].loc['2007','GPP_NT_CUT_REF'] = np.nan
-comb_runs[10].loc['1995','GPP_NT_CUT_REF'] = np.nan
+f_comb[1].loc['2007','GPP_NT_CUT_REF'] = np.nan
+f_comb[10].loc['1995','GPP_NT_CUT_REF'] = np.nan
+# append constrained mean output
+cm_out = pd.read_pickle('../../script_input/yrly_cm.p')
+yr_comb = list()
+for i in range(15):
+    yr_comb.append(f_comb[i].join(cm_out[i],rsuffix='cm'))
+# trait values
 # Latin Hypercube trait values
-tr = pd.read_csv('../script_input/lhd_100.csv')
+tr = pd.read_csv('../../script_input/lhd_100.csv')
 # defaults from 1000 sample random 
-tr_d = pd.read_csv('../script_input/subPFT_1000.csv')
+tr_d = pd.read_csv('../../script_input/subPFT_1000.csv')
 # append defaults
 tr = tr.append(tr_d.iloc[1001,:])
 tr.index = range(0,102)
+# cannot track traits in this format for constrained input mean (unique to site)
+# this may mess with some of the code below (omit from this file)
 
 # evaluate after omitting large leaf lifespan values
 # 90th percentile, data max, and data max + 1 sd
@@ -38,23 +46,26 @@ o_0 = tr.loc[:,'lls'].values < lls_lim[0]
 o_13 = [tr.loc[:,'lls.'+str(i)].values < lls_lim[i] for i in range(1,14)]
 for i in range(14):
     if i == 0:
-	incl.append(o_0)
+	    incl.append(o_0)
     else:
-	incl.append(o_13[i-1])
+	    incl.append(o_13[i-1])
 
 incl = pd.DataFrame(incl)
 
 incl = incl.transpose()
+# add False for constrained mean, only to keep consistent size of ND array
+incl = incl.append([np.repeat(False,14)])
+incl.index = range(103)
 
 site_PFT_num = [5,4,2,7,4,11,2,12,1,7,1,10,7,14,14]
 
 # difference in means for GPP between f(E[x]) and E[f(X)]
 # re-run with 0:-2, strip off mean trait and default
-mm = 100 # 100 for distribution mean, 101 for model default 
+mm = 102 # 100 for distribution mean, 101 for model default,102 for constrained mean 
 tmp = list()
 mag_diff = list()
 for i,y in enumerate(yr_comb):
-    ym = y.iloc[:,range(7,415,4)].mean()
+    ym = y.iloc[:,range(7,419,4)].mean()
     pl = [yi != 0 for yi in ym]
     pl = np.array([pl[iv] and incl.iloc[iv,site_PFT_num[i]-1] for iv in range(len(pl))])
     my = np.array(ym)[pl][0:-2].mean()
@@ -109,12 +120,13 @@ handlep = [handle[p] for p in p_ord]
 
 # percent difference
 plt.bar(range(15),per_diff,0.5,tick_label=handlep)
-plt.text(-2.5,55,'a)')
-plt.ylim(-15,55) 
+#plt.text(-2.5,55,'a)')
+plt.ylim(-10,40) 
 plt.xticks(rotation=60)
-plt.ylabel('Percent Deviation of E[f(X)]-f(E[X])')
+#plt.ylabel('Percent Deviation of E[f(X)]-f(E[X])')
+plt.ylabel('Distribution Mean - Updated Mean [%]')
 plt.subplots_adjust(bottom=0.2)
-plt.savefig('per_diff_T.pdf')
+plt.savefig('per_diff_Tcm.pdf')
 plt.close()
 
 # magnitude difference
@@ -122,7 +134,8 @@ plt.bar(range(15),mag_diff,0.5,tick_label=handlep)
 plt.text(-2,375,'b)')
 plt.ylim(-120,375) 
 plt.xticks(rotation=60)
-plt.ylabel('E[f(X)]-f(E[X]) [gC m$^{-2}$ yr$^{-1}$]')
+#plt.ylabel('E[f(X)]-f(E[X]) [gC m$^{-2}$ yr$^{-1}$]')
+plt.ylabel('Distribution Mean - Updated Mean [gC m$^{-2}$ yr$^{-1}$]')
 plt.subplots_adjust(bottom=0.2)
-plt.savefig('mag_diff_T.pdf')
+plt.savefig('mag_diff_Tcm.pdf')
 plt.close()
