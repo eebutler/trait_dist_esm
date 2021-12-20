@@ -130,6 +130,7 @@ for i,s in enumerate(site):
 evergreen = [0,1,2,4,6,8,10]
 decid = [3,5,7,9,11,12,13,14]
 
+# concatenate z-scores
 ever_g = np.concatenate([gpp_z[e].values for e in evergreen])
 ever_sla = np.concatenate([sla_tr_z[e].values for e in evergreen])
 ever_lcn = np.concatenate([lcn_tr_z[e].values for e in evergreen])
@@ -170,7 +171,65 @@ cax = plt.axes([0.85, 0.1, 0.075, 0.8])
 clb = plt.colorbar(cax=cax)
 clb.ax.set_title('counts')
 plt.savefig('phen_tr.pdf')
+plt.close()
 
+# doubled for convenience
+evergreen = [0,1,2,4,6,8,10]
+decid = [3,5,7,9,11,12,13,14]
+
+# raw values, not z-scores
+sla_tr = list()
+lcn_tr = list()
+
+for i,s in enumerate(site):
+    # look at GPP for 0 values
+    vals = comb_runs[i].iloc[:,range(7,419,4)]
+    # pick out zero values 
+    pl = [iv != 0 for iv in vals.mean()[0:100]]
+    # make the line below into a for loop...
+    pl = [pl[iv] and incl.iloc[iv,site_PFT_num[i]-1] for iv in range(len(pl))]
+    # if plotting something other than GPP (NPP = 8, MR = 9)
+    vals = comb_runs[i].iloc[:,range(7,419,4)]
+    sit_tr = tr_loc_assign(site_PFT_num[i]).iloc[0:100,:]
+    sit_trd = tr_loc_assign(site_PFT_num[i]).iloc[101,:]
+    sla_tr.append(sit_tr.sla[pl])
+    lcn_tr.append(sit_tr.lcn[pl])
+
+ever_sla_rw = np.concatenate([sla_tr[e].values for e in evergreen])
+ever_lcn_rw = np.concatenate([lcn_tr[e].values for e in evergreen])
+deci_sla_rw = np.concatenate([sla_tr[e].values for e in decid])
+deci_lcn_rw = np.concatenate([lcn_tr[e].values for e in decid])
+
+sla_gl_mean = np.concatenate([ever_sla_rw,deci_sla_rw]).mean()
+lcn_gl_mean = np.concatenate([ever_lcn_rw,deci_lcn_rw]).mean()
+
+sla_inv_ever0 = 1/ever_sla_rw - 1/sla_gl_mean
+sla_inv_deci0 = 1/deci_sla_rw - 1/sla_gl_mean
+
+lcn_inv_ever0 = 1/ever_lcn_rw - 1/lcn_gl_mean
+lcn_inv_deci0 = 1/deci_lcn_rw - 1/lcn_gl_mean
+
+lab = ['Evergreen','Deciduous']
+
+plt.figure(figsize=[7.5,4])
+plt.rcParams.update({'font.size':14})
+plt.subplot(121)                                
+plt.tight_layout()
+h = plt.hist([sla_inv_ever0,sla_inv_deci0],bins=20,label=lab,color=['green','brown'],stacked=False)
+plt.text(-90,238,'a)')
+#plt.text(-156,307,'a)')
+plt.xlabel('Centered SLA$^{-1}$ [gC m$^{-2}$]')
+plt.ylabel('Counts')
+plt.legend()
+plt.subplot(122)                                
+plt.tight_layout()
+h = plt.hist([lcn_inv_ever0,lcn_inv_deci0],bins=20,label=lab,color=['green','brown'],stacked=False)
+plt.text(-0.040,119,'b)')
+plt.yticks(np.linspace(0,100,5))
+#plt.text(-0.059,152.5,'b)')
+plt.xlabel('Centered LCN$^{-1}$ [gN gC$^{-1}$]')
+plt.savefig('tr_phen_dists_20bin.pdf')
+plt.close()
 
 # maybe just use curve fits?
 plt.figure(figsize=[7.5,7.5])

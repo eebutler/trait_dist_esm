@@ -170,7 +170,7 @@ plt.legend(lh,[H.get_label() for H in lh])
 plt.xticks(rotation=60)
 plt.ylabel('GPP [gC m$^{-2}$ yr$^{-1}$]')
 plt.subplots_adjust(bottom=0.2)
-plt.savefig('siteGPPcm_only.pdf')
+#plt.savefig('siteGPPcm_only.pdf')
 plt.close()
 
 ## including uncensored values
@@ -206,22 +206,24 @@ fm_err = np.sqrt((fmd**2).mean())
 fm_errs = np.sqrt((fmd**2).std())
 fm_errm = np.median(np.sqrt((fmd**2)))
 
+# default
 fdd = np.array(fm) - np.array(ymd)
 fd_err = np.sqrt((fdd**2).mean())
 fd_errs = np.sqrt((fdd**2).std())
 fd_errm = np.median(np.sqrt((fdd**2)))
-
 
 fmdd = np.array(fm) - np.array(my)
 fmd_err = np.sqrt((fmdd**2).mean())
 fmd_errs = np.sqrt((fmdd**2).std())
 fmd_errm = np.median(np.sqrt((fmdd**2)))
 
+# censored output mean
 fcd = np.array(fm) - np.array(myc)
 fc_err = np.sqrt((fcd**2).mean())
 fc_errs = np.sqrt((fcd**2).std())
 fc_errm = np.median(np.sqrt((fcd**2)))
 
+# censored input mean
 fmcd = np.array(fm) - np.array(ymc)
 fmc_err = np.sqrt((fmcd**2).mean())
 fmc_errs = np.sqrt((fmcd**2).std())
@@ -234,278 +236,8 @@ np.array([fd_err, fc_err,fmc_err]).round()
 np.array([fd_errs, fc_errs,fmc_errs]).round()
 np.array([fm_errm, fd_errm, fmd_errm, fc_errm]).round()
 
-# kruskal-wallis across years
-# nans are a problem
-#y = yr_comb[2]
-pk = list()
+# abs(pd.DataFrame([fdd,fcd,fmcd])).idxmin()
 
-for i,y in enumerate(yr_comb):
-    ym = y.iloc[:,range(7,419,4)].mean()
-    pl = [yi != 0 for yi in ym]
-    pl = np.array([pl[iv] and incl.iloc[iv,site_PFT_num[i]-1] for iv in range(len(pl))])
-     
-    yg = y.iloc[:,range(7,419,4)]
-    yc = yg.iloc[:,pl[0:100]] # censored
-    yu = yg.iloc[:,0:100] # uncensored
-    ym = yg.iloc[:,100] # input mean
-    yd = yg.iloc[:,101] # default
-    yic = yg.iloc[:,102] # censored input mean
-    yf = yr_comb[i].GPP_NT_CUT_REF # flux tower
-    kstat,p = stats.kruskal(yc.values.ravel(),yu.values.ravel(),yd.values,ym.values,yic.values,
-			    yf.values,nan_policy = 'omit')
-    pk.append(p)
-
-
-
-
-# trait combinations that gave rise to GPP values
-tr_close = list()
-tr_max = list()
-sit_cl_rnk = list()
-sit_mx_rnk = list()
-for i in range(15):
-    site_loc = (site_PFT_num[i]-1)*3
-    tr_close.append(tr.iloc[gpp_diff[i],site_loc:site_loc+3].values)
-    tr_max.append(tr.iloc[gpp_max[i],site_loc:site_loc+3].values)
-    cl_rnk = list()
-    mx_rnk = list()
-    for j in range(3):
-	tmp = tr.iloc[:,site_loc+j].sort_values(kind='mergesort')
-	cl_rnk.append(tmp.index.get_loc(gpp_diff[i]))
-	mx_rnk.append(tmp.index.get_loc(gpp_max[i]))
-    sit_cl_rnk.append(cl_rnk)
-    sit_mx_rnk.append(mx_rnk)
-
-# https://stackoverflow.com/questions/40425840/least-squares-fit-in-python-for-3d-surface
-
-def tr3dplot(tr,name,label,rank=False,optim=False):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    
-    tr = np.array(tr)
-    
-    fc = ['g','b','c','m','brown']
-    labels = ['Broadleaf Deciduous','Broadleaf Evergreen',
-	      'Needleleaf Evergreen','Shrub','Grass','Mixed']
-    for i in range(5):
-	x = tr[pft_l[i]][:,0]
-	y = tr[pft_l[i]][:,1]
-	z = tr[pft_l[i]][:,2]
-	for j in range(len(x)): 
-		ax.plot3D([x[j],x[j]],[y[j],y[j]],[0,z[j]],color=fc[i])
-	ax.scatter(tr[pft_l[i]][:,0],tr[pft_l[i]][:,1],tr[pft_l[i]][:,2],c=fc[i],
-		   label=labels[i],depthshade=False)
-     
-    ax.scatter(tr[pft_l[5]][:,0],tr[pft_l[5]][:,1],tr[pft_l[5]][:,2],
-	       facecolor='None',edgecolors='black',depthshade=False,s=45,lw=1.5,label=labels[5])
-    
-    ax.legend(loc='upper right')
-
-    ax.set_xlabel('SLA [m$^2$ kgC$^{-1}$]')
-    ax.set_ylabel('LCN [gC gN$^{-1}$]')
-    ax.set_zlabel('LLS [years]')
-    # max GPP limits
-    ax.set_xlim(0,0.05)
-    ax.set_ylim(0,40)
-    ax.set_zlim(0,10)
-    if optim:
-	ax.set_xlim(0,0.06)   
-    	ax.set_ylim(0,70)
-    	ax.set_zlim(0,10)
-    if rank:
-	ax.set_xlabel('SLA')
-	ax.set_ylabel('LCN')
-    	ax.set_zlabel('LLS')
-	ax.set_xlim(0,100)
-    	ax.set_ylim(0,100)
-    	ax.set_zlim(0,100)
-    	ax.text(0,-5,120,label,fontsize=12)
-    else:
-	ax.text(0,-1,12,label,fontsize=12)
-    plt.savefig(name+'.pdf')
-    plt.close()
-
-#tr3dplot(tr_close,'closest_trait','a)',False,True)
-tr3dplot(tr_max,'gppmax_trait','a)')
-#tr3dplot(sit_cl_rnk,'closest_trait_rank','b)',True,True)
-##jitter
-#tr3dplot(np.array(sit_mx_rnk)+np.random.normal(0,0.75,[15,3]),'gppmax_trait_rank','b)',True)
-
-# full trait space
-x = tr.iloc[:,range(0,42,3)].values
-y = tr.iloc[:,range(1,42,3)].values
-z = tr.iloc[:,range(2,42,3)].values
-
-pl = list()
-for i in range(15):
-    ym = yr_comb[i].iloc[:,range(7,415,4)].mean()
-    m0 = [yi != 0 for yi in ym]
-    pl.append(np.array([m0[iv] and incl.iloc[iv,site_PFT_num[i]-1] for iv in range(len(m0))]))
-
-xp = x[:,np.array(site_PFT_num)-1]
-yp = y[:,np.array(site_PFT_num)-1]
-zp = z[:,np.array(site_PFT_num)-1]
-
-xpc = np.concatenate([xp[pl[i],i] for i in range(15)])
-ypc = np.concatenate([yp[pl[i],i] for i in range(15)])
-zpc = np.concatenate([zp[pl[i],i] for i in range(15)])
-
-log_tr = np.log10(np.array([xpc,ypc,zpc])).T
-log_trm = np.min(log_tr,0)
-log_trx = np.max(log_tr,0)
-# gpp max
-log_trmax = np.log10(np.array(tr_max))
-log_trxm = np.min(log_trmax,0)
-log_trxx = np.max(log_trmax,0)
-
-# set up figure
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-ax.set_aspect("equal")
-
-# from https://codereview.stackexchange.com/questions/155585/plotting-a-rectangular-prism
-# draw cube
-def rect_prism(x_range, y_range, z_range,c):
-    xx, yy = np.meshgrid(x_range, y_range)
-    ax.plot_wireframe(xx, yy, z_range[0], color=c)
-    ax.plot_surface(xx, yy, z_range[0], color=c, alpha=0.2)
-    ax.plot_wireframe(xx, yy, z_range[1], color=c)
-    ax.plot_surface(xx, yy, z_range[1], color=c, alpha=0.2)
-
-    yy, zz = np.meshgrid(y_range, z_range)
-    ax.plot_wireframe(x_range[0], yy, zz, color=c)
-    ax.plot_surface(x_range[0], yy, zz, color=c, alpha=0.2)
-    ax.plot_wireframe(x_range[1], yy, zz, color=c)
-    ax.plot_surface(x_range[1], yy, zz, color=c, alpha=0.2)
-
-    xx, zz = np.meshgrid(x_range, z_range)
-    ax.plot_wireframe(xx, y_range[0], zz, color=c)
-    ax.plot_surface(xx, y_range[0], zz, color=c, alpha=0.2)
-    ax.plot_wireframe(xx, y_range[1], zz, color=c)
-    ax.plot_surface(xx, y_range[1], zz, color=c, alpha=0.2)
-
-    ax.set_xlabel('log$_{10}$(SLA [m$^2$ kgC$^{-1}$])') 
-    ax.set_ylabel('log$_{10}$(LCN [gC gN$^{-1}$])')
-    ax.set_zlabel('log$_{10}$(LLS [years])')
-
-    #ax.set_xlim([-1,1])
-    #ax.set_ylim([-1.5,1.6])
-    #ax.set_zlim([-2,1])
-
-rect_prism(np.array([log_tr[:,0].min(), log_tr[:,0].max()]), 
-	   np.array([log_tr[:,1].min(), log_tr[:,1].max()]), 
-	   np.array([log_tr[:,2].min(), log_tr[:,2].max()]),"r")
-rect_prism(np.array([log_trmax[:,0].min(), log_trmax[:,0].max()]), 
-	   np.array([log_trmax[:,1].min(), log_trmax[:,1].max()]), 
-	   np.array([log_trmax[:,2].min(), log_trmax[:,2].max()]),"b")
-
-xmin = np.repeat(log_tr[:,0].min(),log_tr.shape[0])
-ymax = np.repeat(log_tr[:,1].max(),log_tr.shape[0])
-zmin = np.repeat(log_tr[:,2].min(),log_tr.shape[0])
-
-ax.scatter3D(xmin,log_tr[:,1],log_tr[:,2],color='grey',depthshade=False,zorder=1)
-ax.scatter3D(log_tr[:,0],ymax,log_tr[:,2],color='grey',depthshade=False,zorder=1)
-#ax.scatter3D(log_tr[:,0],log_tr[:,1],zmin,color='grey',depthshade=False,zorder=1)
-
-trmx = np.log10(np.array(tr_max))
-x = trmx[:,0]
-y = trmx[:,1]
-z = trmx[:,2]
-for j in range(len(x)): 
-	ax.plot3D([x[j],x[j]],[y[j],y[j]],[z.min(),z[j]],color='k',zorder=2)
-ax.scatter(trmx[:,0],trmx[:,1],trmx[:,2],c='k',depthshade=False,zorder=2)
-
-ax.text(-2.5,0.6,2.5,'b)')
-#plt.show()
-plt.savefig('log_niches.pdf')
-
-# trait space volumes
-all_dims = 10**(log_trx)-10**(log_trm) 
-all_dimsx = 10**(log_trxx)-10**(log_trxm)
-vol_ratio = (all_dimsx[0]*all_dimsx[1]*all_dimsx[2])/(all_dims[0]*all_dims[1]*all_dims[2])
-
-
-# regression fits
-tr_fit = list()
-trmax_fit = list()
-ltr = list()
-ltxr = list()
-mx_x0 = list()
-mi_x0 = list()
-xmx_x0 = list()
-xmi_x0 = list()
-resid_tr = list()
-resid_trx = list()
-for i in range(3):
-    x = [0,0,1]
-    y = [1,2,2]
-    tr_fit.append(np.polyfit(log_tr[:,x[i]],log_tr[:,y[i]],1))
-    ltr.append(np.linspace(log_trm[i],log_trx[i]))
-    res_tr = log_tr[:,y[i]]-(tr_fit[i][1]+tr_fit[i][0]*log_tr[:,x[i]])
-    rmx = np.argmax(res_tr)
-    rmi = np.argmin(res_tr)
-    resid_tr.append([res_tr.min(),res_tr.max()])
-    mx_x0.append(-1*(tr_fit[i][0]*log_tr[rmx,x[i]]-log_tr[rmx,y[i]]))
-    mi_x0.append(-1*(tr_fit[i][0]*log_tr[rmi,x[i]]-log_tr[rmi,y[i]]))
-    
-    trmax_fit.append(np.polyfit(log_trmax[:,x[i]],log_trmax[:,y[i]],1))
-    ltxr.append(np.linspace(log_trxm[i],log_trxx[i]))
-    res_trx = log_trmax[:,y[i]]-(trmax_fit[i][1]+trmax_fit[i][0]*log_trmax[:,x[i]])
-    rmx = np.argmax(res_trx)
-    rmi = np.argmin(res_trx)
-    resid_trx.append([res_trx.min(),res_trx.max()])
-    xmx_x0.append(-1*(trmax_fit[i][0]*log_trmax[rmx,x[i]]-log_trmax[rmx,y[i]]))
-    xmi_x0.append(-1*(trmax_fit[i][0]*log_trmax[rmi,x[i]]-log_trmax[rmi,y[i]]))
-
-# set up figure
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-ax.set_aspect("equal")
-
-rect_prism(np.array(resid_tr[0]), 
-	   np.array(resid_tr[1]), 
-	   np.array(resid_tr[2]),"r")
-rect_prism(np.array(resid_trx[0]), 
-	   np.array(resid_trx[1]), 
-	   np.array(resid_trx[2]),"b")
-
-xmin = np.repeat(resid_tr[:,0].min(),resid_tr.shape[0])
-ymax = np.repeat(resid_tr[:,1].max(),resid_tr.shape[0])
-zmin = np.repeat(resid_tr[:,2].min(),resid_tr.shape[0])
-
-ax.scatter3D(xmin,resid_tr[:,1],resid_tr[:,2],color='grey')
-ax.scatter3D(resid_tr[:,0],ymax,resid_tr[:,2],color='grey')
-ax.scatter3D(resid_tr[:,0],resid_tr[:,1],zmin,color='grey')
-
-# 2D plots
-# sla-lcn
-plt.plot(log_tr[:,0],log_tr[:,1],'.',color='grey')
-plt.plot(log_trmax[:,0],log_trmax[:,1],'ko')
-plt.plot(ltr[0],tr_fit[0][1]+tr_fit[0][0]*ltr[0],'r')
-plt.plot(ltr[0],mx_x0[0]+tr_fit[0][0]*ltr[0],'r--')
-plt.plot(ltr[0],mi_x0[0]+tr_fit[0][0]*ltr[0],'r--')
-plt.plot(ltxr[0],trmax_fit[0][1]+trmax_fit[0][0]*ltxr[0],'b')
-plt.plot(ltxr[0],xmx_x0[0]+trmax_fit[0][0]*ltxr[0],'b--')
-plt.plot(ltxr[0],xmi_x0[0]+trmax_fit[0][0]*ltxr[0],'b--')
-
-plt.xlabel('log$_{10}$(SLA [m$^2$ kgC$^{-1}$])')
-plt.ylabel('log$_{10}$(LCN [gC gN$^{-1}$])')
-plt.savefig('sla_lcn_gppmax_log.pdf')
-plt.close()
-# sla-lls
-plt.plot(log_tr[:,0],log_tr[:,2],'.',color='grey')
-plt.plot(log_trmax[:,0],log_trmax[:,2],'ko')
-plt.xlabel('log$_{10}$(SLA [m$^2$ kgC$^{-1}$])')
-plt.ylabel('log$_{10}$(LLS [years])')
-plt.savefig('sla_lls_gppmax_log.pdf')
-plt.close()
-# lcn-lls
-plt.plot(log_tr[:,1],log_tr[:,2],'.',color='grey')
-plt.plot(log_trmax[:,1],log_trmax[:,2],'ko')
-plt.xlabel('log$_{10}$(LCN [gC gN$^{-1}$])')
-plt.ylabel('log$_{10}$(LLS [years])')
-plt.savefig('lcn_lls_gppmax_log.pdf')
-plt.close()
-
-
-
+tower_DF = pd.DataFrame([fdd,fcd,fmcd]).transpose()
+tower_DF.index = handlep
+tower_DF.columns = ['Default','Output','Input']
