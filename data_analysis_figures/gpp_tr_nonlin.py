@@ -180,6 +180,7 @@ decid = [3,5,7,9,11,12,13,14]
 # raw values, not z-scores
 sla_tr = list()
 lcn_tr = list()
+gpp_tr = list()
 
 for i,s in enumerate(site):
     # look at GPP for 0 values
@@ -190,10 +191,12 @@ for i,s in enumerate(site):
     pl = [pl[iv] and incl.iloc[iv,site_PFT_num[i]-1] for iv in range(len(pl))]
     # if plotting something other than GPP (NPP = 8, MR = 9)
     vals = comb_runs[i].iloc[:,range(7,419,4)]
+    gpp = vals.mean()[0:100]
     sit_tr = tr_loc_assign(site_PFT_num[i]).iloc[0:100,:]
     sit_trd = tr_loc_assign(site_PFT_num[i]).iloc[101,:]
     sla_tr.append(sit_tr.sla[pl])
     lcn_tr.append(sit_tr.lcn[pl])
+    gpp_tr.append(gpp[pl])
 
 ever_sla_rw = np.concatenate([sla_tr[e].values for e in evergreen])
 ever_lcn_rw = np.concatenate([lcn_tr[e].values for e in evergreen])
@@ -230,6 +233,44 @@ plt.yticks(np.linspace(0,100,5))
 plt.xlabel('Centered LCN$^{-1}$ [gN gC$^{-1}$]')
 plt.savefig('tr_phen_dists_20bin.pdf')
 plt.close()
+
+# aggregate, but little grouped pattern
+sla_rw = np.concatenate([sla_tr[i].values for i in range(0,15)])
+lcn_rw = np.concatenate([lcn_tr[i].values for i in range(0,15)])
+gpp_rw = np.concatenate([gpp_tr[i].values for i in range(0,15)])
+
+r2_a = list()
+
+# order from coldest to warmest
+p_ord = np.argsort(t2m)
+
+sla_tr = [sla_tr[p] for p in p_ord]
+lcn_tr = [lcn_tr[p] for p in p_ord]
+gpp_tr = [gpp_tr[p] for p in p_ord]
+handle = [handle[p] for p in p_ord]
+
+fig = plt.figure(figsize=[7.5,10])
+plt.rcParams.update({'font.size':12})
+for i in range(0,15):
+    r2 = np.corrcoef(1/(sla_tr[i]*lcn_tr[i]),gpp_tr[i])[1,0]**2, 
+    ax0 = fig.add_subplot(111)
+    ax = fig.add_subplot(5,3,i+1)
+    plt.tight_layout()
+    plt.plot(1/(sla_tr[i]*lcn_tr[i]),gpp_tr[i],'.')
+    plt.title(handle[i]+' r$^{2}$='+str(np.round(r2,2)[0]))
+    r2_a.append(r2)
+    
+# Turn off axis lines and ticks of the big subplot
+ax0.spines['top'].set_color('none')
+ax0.spines['bottom'].set_color('none')
+ax0.spines['left'].set_color('none')
+ax0.spines['right'].set_color('none')
+ax0.tick_params(labelcolor='w', top=False, bottom=False, left=False, right=False)
+ax0.set_xlabel('SLA$^{-1}$*LCN$^{-1}$ [g N m$^{-2}$]')
+ax0.set_ylabel('GPP [gC m$^{-2}$ yr$^{-1}$]')         
+ax0.yaxis.set_label_coords(-.1, .5)
+# Mean R^2 = 0.49
+plt.savefig('sla_lcn_gpp_comb.pdf')
 
 # maybe just use curve fits?
 plt.figure(figsize=[7.5,7.5])
